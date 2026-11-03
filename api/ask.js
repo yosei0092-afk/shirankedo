@@ -203,7 +203,11 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 300,
+        max_tokens: 600,
+        // このサイトは短い返事だけでよいので、考える機能は切る
+        // （考える分も max_tokens に含まれ、文章が出ないことがあるため）
+        thinking: { type: "disabled" },
+        output_config: { effort: "low" },
         system: buildSystem(dialect),
         messages: [{ role: "user", content: "質問：" + question }],
       }),
@@ -219,7 +223,7 @@ module.exports = async (req, res) => {
       .join("")
       .trim();
     if (!text) {
-      await record(body.d, question, "", "エラー: 空の返事");
+      await record(body.d, question, "", "エラー: 空の返事 (" + (data.stop_reason || "不明") + ")");
       return res.status(502).json({ error: "empty" });
     }
     await record(body.d, question, text, "成功");
