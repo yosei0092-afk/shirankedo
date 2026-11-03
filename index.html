@@ -33,6 +33,8 @@ button:disabled{opacity:.5;cursor:default}
 .dial{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 18px}
 .dial button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:6px 16px;font-size:.85rem;font-weight:400}
 .dial button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+.dial select{font:inherit;padding:8px 36px 8px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
+.dial select:focus{outline:2px solid var(--accent);outline-offset:1px}
 footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:30px}
 </style>
 </head>
@@ -40,15 +42,28 @@ footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:30px}
 <main>
   <h1>知らんけど<span>検索</span></h1>
   <p class="sub">答えは返します。責任は取りません。</p>
-  <div class="dial" id="dial">
-    <button class="on" data-d="kansai">関西弁</button>
-    <button data-d="iyo">伊予弁</button>
-    <button data-d="hakata">博多弁</button>
-    <button data-d="ibaraki">茨城弁</button>
-    <button data-d="hiroshima">広島弁</button>
-    <button data-d="tsugaru">津軽弁</button>
-    <button data-d="kyoto">京都弁</button>
-    <button data-d="okinawa">沖縄弁</button>
+  <div class="dial">
+    <select id="dial" aria-label="口調を選ぶ">
+      <optgroup label="方言">
+        <option value="kansai" selected>関西弁</option>
+        <option value="iyo">伊予弁</option>
+        <option value="hakata">博多弁</option>
+        <option value="ibaraki">茨城弁</option>
+        <option value="hiroshima">広島弁</option>
+        <option value="tsugaru">津軽弁</option>
+        <option value="kyoto">京都弁</option>
+        <option value="okinawa">沖縄弁</option>
+      </optgroup>
+      <optgroup label="キャラ">
+        <option value="baby">赤ちゃん言葉</option>
+        <option value="ojou">お嬢様言葉</option>
+        <option value="butler">執事</option>
+        <option value="tsundere">ツンデレ</option>
+        <option value="cat">猫</option>
+        <option value="gal">ギャル</option>
+        <option value="yankee">ヤンキー</option>
+      </optgroup>
+    </select>
   </div>
   <div class="box">
     <input id="q" placeholder="なんでも聞いてや" autocomplete="off" maxlength="100">
@@ -77,7 +92,21 @@ var D = {
   kyoto:{style:"京ことば（京都の伝統的でやわらかく上品な言葉。「〜どす」「〜どすえ」「〜どすなぁ」「〜おへん」「〜しはる」「〜え」「〜さかい」「〜しとくれやす」「おおきに」などを使い、直接言わず遠回しに言う）",end:"知りまへんけどなぁ",ph:"なんでも聞いとくれやす",loading:"それっぽい答え探してますさかい、ちょっと待っとくれやす…",verify:"それはご自分で調べとくれやす。知りまへんけどなぁ",
     fb:["まあ、だいたいそんなもんどすやろなぁ。昔からそない言うてはりますさかい。知りまへんけどなぁ","それはたぶん3割くらいは合うてるんとちゃいますやろか。知りまへんけどなぁ","ええ質問どすなぁ。あんまり考えはらへんほうが、うまいこといきますえ。知りまへんけどなぁ"]},
   okinawa:{style:"沖縄の日常的な話し言葉（ウチナーヤマトグチ）。「〜さー」「〜さ〜」「〜ね〜」「〜よ〜」「でーじ」などを使う。誇張しすぎず、本格的な琉球語ではなく、今の沖縄の人が話す共通語まじりの自然な言い方にする",end:"知らんさー",ph:"なんでも聞いてみ〜",loading:"それっぽい答え探してるさー、ちょっと待っててね…",verify:"それは自分で調べてみ〜。知らんさー",
-    fb:["まあ、だいたいそんなもんさー。昔からそう言うよ〜。知らんさー","それはたぶん3割くらいは合ってるさ〜。知らんさー","いい質問さー。あんまり考えないほうがうまくいくよ〜。知らんさー"]}
+    fb:["まあ、だいたいそんなもんさー。昔からそう言うよ〜。知らんさー","それはたぶん3割くらいは合ってるさ〜。知らんさー","いい質問さー。あんまり考えないほうがうまくいくよ〜。知らんさー"]},
+  baby:{end:"しらないでちゅ",ph:"なんでもきいてね〜",loading:"それっぽいこたえ、さがしてるでちゅ…ちょっとまってね",verify:"それはじぶんでしらべてね。しらないでちゅ",
+    fb:["えっとね、だいたいそんなかんじでちゅ。むかしからそういうんでちゅよ。しらないでちゅ","たぶんね、3わりくらいはあってるでちゅ。しらないでちゅ","いいしつもんでちゅね。あんまりかんがえないほうが、うまくいくでちゅよ。しらないでちゅ"]},
+  ojou:{end:"存じませんわ",ph:"なんでもお聞きになって",loading:"それらしいお答えをお探ししておりますわ。少々お待ちくださいませ…",verify:"それはご自分でお調べあそばせ。存じませんわ",
+    fb:["まあ、だいたいそのようなものですわ。昔からそう申しますのよ。存じませんわ","おそらく3割ほどは当たっておりますわ。存じませんわ","よいご質問ですわね。あまり深く考えないほうが、うまくいきますのよ。存じませんわ"]},
+  butler:{end:"存じ上げません",ph:"なんなりとお尋ねください",loading:"それらしいお答えをお探ししております。少々お待ちください…",verify:"恐れながら、それはご自身でお調べくださいませ。存じ上げません",
+    fb:["恐れながら、おおむねそのようなものでございます。昔からそう申します。存じ上げません","おそらく3割ほどは当たっているかと存じます。存じ上げません","よいご質問でございます。あまりお考えにならぬほうが、うまくいくかと存じます。存じ上げません"]},
+  tsundere:{end:"知らないんだからね",ph:"べ、別に聞いてもいいけど…",loading:"べ、別にあんたのために探してるんじゃないんだからね…",verify:"そ、それくらい自分で調べなさいよね！ 知らないんだからね！",
+    fb:["べ、別に知ってるわけじゃないけど、だいたいそんな感じなんじゃないの？ 知らないんだからね！","たぶん3割くらいは合ってるんじゃない？ か、勘違いしないでよね。知らないんだからね！","ま、まあ、いい質問じゃない。あんまり考えないほうがうまくいくわよ。知らないんだからね！"]},
+  cat:{end:"知らんにゃ",ph:"なんでも聞くにゃ",loading:"それっぽい答え探してるにゃ…ちょっと待つにゃ",verify:"それは自分で調べるにゃ。知らんにゃ",
+    fb:["まあ、だいたいそんなもんだにゃ。昔からそう言うにゃ。知らんにゃ","たぶん3割くらいは合ってるにゃ。知らんにゃ","いい質問だにゃ。あんまり考えないほうが、うまくいくにゃ。知らんにゃ"]},
+  gal:{end:"知らんけどね",ph:"なんでも聞いてよ〜",loading:"それっぽい答え探してるから、ちょっと待ってて〜",verify:"それは自分で調べてみ？ 知らんけどね",
+    fb:["てか、だいたいそんな感じじゃん？ 昔からそう言うし。知らんけどね","たぶん3割くらいは合ってるくない？ マジで知らんけどね","それいい質問じゃん！ あんま考えないほうがうまくいくっしょ。知らんけどね"]},
+  yankee:{end:"知らねえっすけど",ph:"なんでも聞けよ",loading:"それっぽい答え探してんだよ、ちょっと待てよ…",verify:"それは自分で調べろよ。知らねえっすけど",
+    fb:["まあ、だいたいそんなもんだろ。昔からそう言うじゃねえか。知らねえっすけど","たぶん3割くらいは合ってんじゃねえか。知らねえっすけど","いい質問じゃねえか。あんま考えねえほうが、うまくいくっすよ。知らねえっすけど"]}
 };
 var busy = false;
 var q = document.getElementById("q"), go = document.getElementById("go"), out = document.getElementById("out");
@@ -92,7 +121,7 @@ samples.forEach(function(s){
 function ensureEnd(t){
   t = (t || "").trim();
   var e = D[cur].end;
-  return t.replace(/[。！!\s]+$/,"").slice(-e.length) === e ? t : t + " " + e;
+  return t.replace(/[。！!？?〜~\s]+$/,"").slice(-e.length) === e ? t : t + " " + e;
 }
 
 function card(question){
@@ -156,13 +185,11 @@ async function ask(){
 }
 
 go.onclick = ask;
-document.querySelectorAll("#dial button").forEach(function(b){
-  b.onclick = function(){
-    cur = b.dataset.d;
-    document.querySelectorAll("#dial button").forEach(function(x){ x.classList.toggle("on", x === b); });
-    q.placeholder = D[cur].ph;
-  };
-});
+var dial = document.getElementById("dial");
+dial.onchange = function(){
+  cur = dial.value;
+  q.placeholder = D[cur].ph;
+};
 q.addEventListener("keydown", function(e){ if (e.key === "Enter" && !e.isComposing) ask(); });
 </script>
 </body>
