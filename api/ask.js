@@ -80,6 +80,60 @@ const DIALECTS = {
   },
 };
 
+const LABELS = {
+  kansai: "関西弁",
+  iyo: "伊予弁",
+  hakata: "博多弁",
+  ibaraki: "茨城弁",
+  hiroshima: "広島弁",
+  tsugaru: "津軽弁",
+  kyoto: "京都弁",
+  okinawa: "沖縄弁",
+  baby: "赤ちゃん言葉",
+  ojou: "お嬢様言葉",
+  butler: "執事",
+  tsundere: "ツンデレ",
+  cat: "猫",
+  gal: "ギャル",
+  yankee: "ヤンキー",
+};
+
+// Googleスプレッドシートに1行記録する（失敗しても返事には影響させない）
+// 環境変数 SHEET_WEBHOOK_URL と SHEET_SECRET が両方あるときだけ動きます。
+async function logToSheet(entry) {
+  const url = process.env.SHEET_WEBHOOK_URL;
+  const secret = process.env.SHEET_SECRET;
+  if (!url || !secret) return;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret, ...entry }),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    // 記録に失敗しても何もしない
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const CHARA = ["baby", "ojou", "butler", "tsundere", "cat", "gal", "yankee"];
+
+// 日時・ジャンル・口調・質問・回答・結果を1行として記録する
+function record(d, question, answer, result) {
+  return logToSheet({
+    time: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }),
+    genre: CHARA.includes(d) ? "キャラ" : "方言",
+    style: LABELS[d] || d,
+    q: question,
+    a: answer,
+    result,
+  });
+}
+
 function buildSystem(d) {
   return (
     "あなたは「知らんけど検索」という検索エンジンです。ユーザーの質問に、" +
@@ -135,6 +189,7 @@ module.exports = async (req, res) => {
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
+    await record(body.d, question, "", "エラー: APIキー未設定");
     return res.status(500).json({ error: "server not configured" });
   }
 
@@ -154,6 +209,7 @@ module.exports = async (req, res) => {
       }),
     });
     if (!r.ok) {
+      await record(body.d, question, "", "エラー: upstream " + r.status);
       return res.status(502).json({ error: "upstream " + r.status });
     }
     const data = await r.json();
@@ -162,9 +218,14 @@ module.exports = async (req, res) => {
       .map((b) => b.text)
       .join("")
       .trim();
-    if (!text) return res.status(502).json({ error: "empty" });
+    if (!text) {
+      await record(body.d, question, "", "エラー: 空の返事");
+      return res.status(502).json({ error: "empty" });
+    }
+    await record(body.d, question, text, "成功");
     return res.status(200).json({ text });
   } catch (e) {
+    await record(body.d, question, "", "エラー: 通信に失敗");
     return res.status(502).json({ error: "upstream failed" });
   }
 };
