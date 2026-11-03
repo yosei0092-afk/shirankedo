@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>知らんけど検索</title>
+<style>
+:root{--bg:#fffaf0;--fg:#2b2118;--muted:#8a7a68;--card:#fff;--line:#eadfce;--accent:#e8590c;--accent-fg:#fff;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1712;--fg:#f3e9dc;--muted:#a89a88;--card:#272019;--line:#3a3025;--accent:#ff8a3d;--accent-fg:#1c1712;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1c1712;--fg:#f3e9dc;--muted:#a89a88;--card:#272019;--line:#3a3025;--accent:#ff8a3d;--accent-fg:#1c1712;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;line-height:1.7}
+main{max-width:640px;margin:0 auto;padding:40px 20px 60px}
+h1{font-size:2rem;margin:0;text-align:center;letter-spacing:.02em}
+h1 span{color:var(--accent)}
+.sub{text-align:center;color:var(--muted);margin:6px 0 28px;font-size:.9rem}
+.box{display:flex;gap:8px}
+input{flex:1;min-width:0;font:inherit;padding:12px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg)}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:12px 20px;background:var(--accent);color:var(--accent-fg);font-weight:700}
+button:disabled{opacity:.5;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 24px;justify-content:center}
+.chip{background:transparent;color:var(--muted);border:1px solid var(--line);padding:6px 12px;font-size:.85rem;font-weight:400}
+.result{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px}
+.q{color:var(--muted);font-size:.8rem;margin-bottom:6px}
+.a{font-size:1.05rem;white-space:pre-wrap}
+.meter{margin-top:12px;font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--accent)}
+.verify{margin-top:10px;background:transparent;color:var(--muted);border:1px solid var(--line);padding:4px 12px;font-size:.8rem;font-weight:400}
+.verify-ans{margin-top:8px;font-size:.9rem;color:var(--accent)}
+.dial{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 18px}
+.dial button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:6px 16px;font-size:.85rem;font-weight:400}
+.dial button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:30px}
+</style>
+</head>
+<body>
+<main>
+  <h1>知らんけど<span>検索</span></h1>
+  <p class="sub">答えは返します。責任は取りません。</p>
+  <div class="dial" id="dial">
+    <button class="on" data-d="kansai">関西弁</button>
+    <button data-d="iyo">伊予弁</button>
+    <button data-d="hakata">博多弁</button>
+    <button data-d="ibaraki">茨城弁</button>
+    <button data-d="hiroshima">広島弁</button>
+    <button data-d="tsugaru">津軽弁</button>
+    <button data-d="kyoto">京都弁</button>
+    <button data-d="okinawa">沖縄弁</button>
+  </div>
+  <div class="box">
+    <input id="q" placeholder="なんでも聞いてや" autocomplete="off" maxlength="100">
+    <button id="go">検索</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div id="out"></div>
+  <footer>※ 内容の正確さは保証されません。知らんけど。</footer>
+</main>
+<script>
+var samples = ["東京の人口は？","カレーの隠し味は？","明日の天気は？","人生の意味とは？"];
+var cur = "kansai";
+var D = {
+  kansai:{style:"関西弁",end:"知らんけど",ph:"なんでも聞いてや",loading:"それっぽい答え探してるとこやで…",verify:"それは自分で調べてや。知らんけど",
+    fb:["まあだいたいそんなもんちゃう？ 昔からそう言うで。知らんけど","それな、たぶん3割くらいは合ってると思うで。知らんけど","ええ質問やな。深く考えんほうがうまいこといくんちゃう？ 知らんけど"]},
+  iyo:{style:"伊予弁（愛媛・松山の方言。「〜けん」「〜しよる」「〜やけん」などを使う。「そがいな」「ぞな」「なもし」のような古い・誇張した言い回しは使わない）",end:"知らんけん",ph:"なんでも聞いてみて",loading:"それっぽい答え探しよるけん、ちょっと待っとってな…",verify:"それは自分で調べてみいや。知らんけん",
+    fb:["まあだいたいそんなもんよ。昔からそう言いよるけんね。知らんけん","それはたぶん3割くらいは合うとるんじゃないかな。知らんけん","ええ質問じゃけんど、あんまり考えんほうがうまいこといくんよ。知らんけん"]},
+  hakata:{style:"博多弁（福岡の方言。「〜ばい」「〜けん」「〜しよる」「〜と？」「〜たい」などを使う。誇張した古い言い回しは使わず、今の福岡の人が話す自然な言い方にする）",end:"知らんばい",ph:"なんでも聞いてみり",loading:"それっぽい答え探しよるけん、ちょっと待っときない…",verify:"それは自分で調べてみりー。知らんばい",
+    fb:["まあだいたいそがん感じたい。昔からそげん言いよるけんね。知らんばい","それはたぶん3割くらいは合っとるっちゃない？ 知らんばい","よか質問ばい。あんまり考えんほうがうまくいくっちゃないと？ 知らんばい"]},
+  ibaraki:{style:"茨城弁（「〜だっぺ」「〜っぺ」「〜べ」「〜だんべ」「〜でねぇの」「〜してっぺ」などを使う。誇張しすぎず、今の茨城の人が話す自然な言い方にする）",end:"知らねぇけんど",ph:"なんでも聞いてみっぺ",loading:"それっぽい答え探してっから、ちょっと待ってろっぺ…",verify:"それは自分で調べてみろっぺ。知らねぇけんど",
+    fb:["まぁだいたいそんなもんだっぺ。昔っからそう言うんだっぺよ。知らねぇけんど","それはたぶん3割くれぇは合ってんだっぺ。知らねぇけんど","いい質問だっぺな。あんまり考えねぇほうがうまくいくんでねぇの？ 知らねぇけんど"]},
+  hiroshima:{style:"広島弁（「〜じゃけぇ」「〜けぇ」「〜じゃろ」「〜よる」「〜のう」「〜じゃん」などを使う。誇張しすぎず、今の広島の人が話す自然な言い方にする）",end:"知らんけぇ",ph:"なんでも聞いてみんさい",loading:"それっぽい答え探しよるけぇ、ちょっと待っとってや…",verify:"それは自分で調べてみんさいや。知らんけぇ",
+    fb:["まあだいたいそんなもんじゃろ。昔からそう言うけぇ。知らんけぇ","それはたぶん3割くらいは合うとるんじゃないんかのう。知らんけぇ","ええ質問じゃのう。あんまり考えんほうがうまいこといくんじゃないかのう。知らんけぇ"]},
+  tsugaru:{style:"津軽弁（青森・津軽地方の方言。「んだ」「〜ず」「〜ばって」「〜してら」「〜でねぇが」「わ」「な」などを使う。誇張しすぎず、意味が通じる範囲で自然な津軽弁にする）",end:"知らねばって",ph:"なんでも聞いてみへ",loading:"それっぽい答え探してらはんで、ちょっと待ってけ…",verify:"それは自分で調べてみへ。知らねばって",
+    fb:["まんず、だいたいそったなもんだ。昔からそう言ってらんだず。知らねばって","それはたぶん3割くれは合ってらんでねぇが。知らねばって","いい質問だな。あんまり考えねほうがうまぐいぐんだず。知らねばって"]},
+  kyoto:{style:"京ことば（京都の伝統的でやわらかく上品な言葉。「〜どす」「〜どすえ」「〜どすなぁ」「〜おへん」「〜しはる」「〜え」「〜さかい」「〜しとくれやす」「おおきに」などを使い、直接言わず遠回しに言う）",end:"知りまへんけどなぁ",ph:"なんでも聞いとくれやす",loading:"それっぽい答え探してますさかい、ちょっと待っとくれやす…",verify:"それはご自分で調べとくれやす。知りまへんけどなぁ",
+    fb:["まあ、だいたいそんなもんどすやろなぁ。昔からそない言うてはりますさかい。知りまへんけどなぁ","それはたぶん3割くらいは合うてるんとちゃいますやろか。知りまへんけどなぁ","ええ質問どすなぁ。あんまり考えはらへんほうが、うまいこといきますえ。知りまへんけどなぁ"]},
+  okinawa:{style:"沖縄の日常的な話し言葉（ウチナーヤマトグチ）。「〜さー」「〜さ〜」「〜ね〜」「〜よ〜」「でーじ」などを使う。誇張しすぎず、本格的な琉球語ではなく、今の沖縄の人が話す共通語まじりの自然な言い方にする",end:"知らんさー",ph:"なんでも聞いてみ〜",loading:"それっぽい答え探してるさー、ちょっと待っててね…",verify:"それは自分で調べてみ〜。知らんさー",
+    fb:["まあ、だいたいそんなもんさー。昔からそう言うよ〜。知らんさー","それはたぶん3割くらいは合ってるさ〜。知らんさー","いい質問さー。あんまり考えないほうがうまくいくよ〜。知らんさー"]}
+};
+var busy = false;
+var q = document.getElementById("q"), go = document.getElementById("go"), out = document.getElementById("out");
+
+samples.forEach(function(s){
+  var b = document.createElement("button");
+  b.className = "chip"; b.textContent = s;
+  b.onclick = function(){ q.value = s; ask(); };
+  document.getElementById("chips").appendChild(b);
+});
+
+function ensureEnd(t){
+  t = (t || "").trim();
+  var e = D[cur].end;
+  return t.replace(/[。！!\s]+$/,"").slice(-e.length) === e ? t : t + " " + e;
+}
+
+function card(question){
+  var d = document.createElement("div"); d.className = "result";
+  var a = document.createElement("div"); a.className = "q"; a.textContent = "「" + question + "」";
+  var b = document.createElement("div"); b.className = "a"; b.textContent = D[cur].loading;
+  d.appendChild(a); d.appendChild(b);
+  out.insertBefore(d, out.firstChild);
+  return {el: d, ans: b};
+}
+
+function finish(c){
+  var m = document.createElement("div"); m.className = "meter";
+  m.innerHTML = '<span>信頼度</span><div class="bar"><i></i></div><span>' + D[cur].end + '</span>';
+  var v = document.createElement("button"); v.className = "verify"; v.textContent = "ほんまか確認する";
+  v.onclick = function(){
+    v.disabled = true;
+    var r = document.createElement("div"); r.className = "verify-ans"; r.textContent = D[cur].verify;
+    c.el.appendChild(r);
+  };
+  c.el.appendChild(m); c.el.appendChild(v);
+  if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+    var s = document.createElement("button"); s.className = "verify"; s.style.marginLeft = "8px"; s.textContent = "🔊 読み上げ";
+    s.onclick = function(){
+      try {
+        var ss = window.speechSynthesis;
+        if (ss.speaking) { ss.cancel(); return; }
+        var u = new SpeechSynthesisUtterance(c.ans.textContent);
+        u.lang = "ja-JP"; u.rate = 0.95;
+        ss.speak(u);
+      } catch(e){}
+    };
+    c.el.appendChild(s);
+  }
+}
+
+async function ask(){
+  var text = q.value.trim();
+  if (!text || busy) return;
+  busy = true; go.disabled = true;
+  var c = card(text);
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 20000);
+    var r = await fetch("/api/ask", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({q: text, d: cur}),
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error("http " + r.status);
+    var res = await r.json();
+    if (!res || !res.text) throw new Error("empty");
+    c.ans.textContent = ensureEnd(res.text);
+  } catch(e){
+    var fb = D[cur].fb; c.ans.textContent = fb[Math.floor(Math.random()*fb.length)];
+  }
+  finish(c);
+  busy = false; go.disabled = false;
+}
+
+go.onclick = ask;
+document.querySelectorAll("#dial button").forEach(function(b){
+  b.onclick = function(){
+    cur = b.dataset.d;
+    document.querySelectorAll("#dial button").forEach(function(x){ x.classList.toggle("on", x === b); });
+    q.placeholder = D[cur].ph;
+  };
+});
+q.addEventListener("keydown", function(e){ if (e.key === "Enter" && !e.isComposing) ask(); });
+</script>
+</body>
+</html>

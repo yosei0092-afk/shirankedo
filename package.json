@@ -1,0 +1,7 @@
+{
+  "name": "shirankedo-search",
+  "version": "1.0.0",
+  "private": true,
+  "description": "知らんけど検索",
+  "engines": { "node": ">=18" }
+}
